@@ -5,6 +5,8 @@ import (
 
 	"github.com/fergalhk-lab/deployer/config"
 	"github.com/fergalhk-lab/deployer/generator"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func svcAndCfg() (config.Service, config.Config) {
@@ -25,47 +27,33 @@ func svcAndCfg() (config.Service, config.Config) {
 func TestGenerateDeployment_TypeMeta(t *testing.T) {
 	svc, cfg := svcAndCfg()
 	d := generator.GenerateDeployment(svc, cfg)
-	if d.APIVersion != "apps/v1" || d.Kind != "Deployment" {
-		t.Errorf("TypeMeta = %q/%q, want apps/v1/Deployment", d.APIVersion, d.Kind)
-	}
+	assert.Equal(t, "apps/v1", d.APIVersion)
+	assert.Equal(t, "Deployment", d.Kind)
 }
 
 func TestGenerateDeployment_Namespace(t *testing.T) {
 	svc, cfg := svcAndCfg()
 	d := generator.GenerateDeployment(svc, cfg)
-	if d.Namespace != "myapp" {
-		t.Errorf("Namespace = %q, want %q", d.Namespace, "myapp")
-	}
-	if d.Name != "api" {
-		t.Errorf("Name = %q, want %q", d.Name, "api")
-	}
+	assert.Equal(t, "myapp", d.Namespace)
+	assert.Equal(t, "api", d.Name)
 }
 
 func TestGenerateDeployment_OneReplica(t *testing.T) {
 	svc, cfg := svcAndCfg()
 	d := generator.GenerateDeployment(svc, cfg)
-	if d.Spec.Replicas == nil || *d.Spec.Replicas != 1 {
-		t.Errorf("Replicas = %v, want 1", d.Spec.Replicas)
-	}
+	require.NotNil(t, d.Spec.Replicas)
+	assert.Equal(t, int32(1), *d.Spec.Replicas)
 }
 
 func TestGenerateDeployment_Labels(t *testing.T) {
 	svc, cfg := svcAndCfg()
 	d := generator.GenerateDeployment(svc, cfg)
-	if d.Labels["app.kubernetes.io/name"] != "api" {
-		t.Errorf("label name = %q, want %q", d.Labels["app.kubernetes.io/name"], "api")
-	}
-	if d.Labels["app.kubernetes.io/part-of"] != "myapp" {
-		t.Errorf("label part-of = %q, want %q", d.Labels["app.kubernetes.io/part-of"], "myapp")
-	}
-	if d.Labels["app.kubernetes.io/managed-by"] != "deployer" {
-		t.Errorf("label managed-by = %q, want %q", d.Labels["app.kubernetes.io/managed-by"], "deployer")
-	}
+	assert.Equal(t, "api", d.Labels["app.kubernetes.io/name"])
+	assert.Equal(t, "myapp", d.Labels["app.kubernetes.io/part-of"])
+	assert.Equal(t, "deployer", d.Labels["app.kubernetes.io/managed-by"])
 	// Pod template labels must match ObjectMeta labels
 	for k, v := range d.Labels {
-		if d.Spec.Template.Labels[k] != v {
-			t.Errorf("pod template label[%q] = %q, want %q", k, d.Spec.Template.Labels[k], v)
-		}
+		assert.Equal(t, v, d.Spec.Template.Labels[k], "pod template label %q", k)
 	}
 }
 
@@ -73,34 +61,22 @@ func TestGenerateDeployment_SelectorUsesName(t *testing.T) {
 	svc, cfg := svcAndCfg()
 	d := generator.GenerateDeployment(svc, cfg)
 	sel := d.Spec.Selector.MatchLabels
-	if sel["app.kubernetes.io/name"] != "api" {
-		t.Errorf("selector name = %q, want %q", sel["app.kubernetes.io/name"], "api")
-	}
-	if _, ok := sel["app.kubernetes.io/part-of"]; ok {
-		t.Error("selector should not contain part-of label")
-	}
-	if _, ok := sel["app.kubernetes.io/managed-by"]; ok {
-		t.Error("selector should not contain managed-by label")
-	}
-	if len(sel) != 1 {
-		t.Errorf("selector len = %d, want 1", len(sel))
-	}
+	assert.Equal(t, "api", sel["app.kubernetes.io/name"])
+	assert.NotContains(t, sel, "app.kubernetes.io/part-of")
+	assert.NotContains(t, sel, "app.kubernetes.io/managed-by")
+	assert.Len(t, sel, 1)
 }
 
 func TestGenerateDeployment_PodTemplateAnnotation(t *testing.T) {
 	svc, cfg := svcAndCfg()
 	d := generator.GenerateDeployment(svc, cfg)
-	ann := d.Spec.Template.Annotations
-	if ann["kubectl.kubernetes.io/default-container"] != "main" {
-		t.Errorf("default-container annotation = %q, want %q", ann["kubectl.kubernetes.io/default-container"], "main")
-	}
+	assert.Equal(t, "main", d.Spec.Template.Annotations["kubectl.kubernetes.io/default-container"])
 }
 
 func TestGenerateDeployment_ContainerImage(t *testing.T) {
 	svc, cfg := svcAndCfg()
 	d := generator.GenerateDeployment(svc, cfg)
 	containers := d.Spec.Template.Spec.Containers
-	if len(containers) != 1 || containers[0].Image != "my-registry/api:1.0.0" {
-		t.Errorf("container image = %q, want %q", containers[0].Image, "my-registry/api:1.0.0")
-	}
+	require.Len(t, containers, 1)
+	assert.Equal(t, "my-registry/api:1.0.0", containers[0].Image)
 }

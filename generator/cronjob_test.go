@@ -3,8 +3,12 @@ package generator_test
 import (
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
+
 	"github.com/fergalhk-lab/deployer/config"
 	"github.com/fergalhk-lab/deployer/generator"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func cronJob() config.CronJob {
@@ -24,28 +28,21 @@ func cronJob() config.CronJob {
 func TestGenerateCronJob_TypeMeta(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	cj := generator.GenerateCronJob(cronJob(), cfg)
-	if cj.APIVersion != "batch/v1" || cj.Kind != "CronJob" {
-		t.Errorf("TypeMeta = %q/%q, want batch/v1/CronJob", cj.APIVersion, cj.Kind)
-	}
+	assert.Equal(t, "batch/v1", cj.APIVersion)
+	assert.Equal(t, "CronJob", cj.Kind)
 }
 
 func TestGenerateCronJob_Namespace(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	cj := generator.GenerateCronJob(cronJob(), cfg)
-	if cj.Name != "cleanup" {
-		t.Errorf("Name = %q, want %q", cj.Name, "cleanup")
-	}
-	if cj.Namespace != "myapp" {
-		t.Errorf("Namespace = %q, want %q", cj.Namespace, "myapp")
-	}
+	assert.Equal(t, "cleanup", cj.Name)
+	assert.Equal(t, "myapp", cj.Namespace)
 }
 
 func TestGenerateCronJob_Schedule(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	cj := generator.GenerateCronJob(cronJob(), cfg)
-	if cj.Spec.Schedule != "0 2 * * *" {
-		t.Errorf("Schedule = %q, want %q", cj.Spec.Schedule, "0 2 * * *")
-	}
+	assert.Equal(t, "0 2 * * *", cj.Spec.Schedule)
 }
 
 func TestGenerateCronJob_BackoffLimit(t *testing.T) {
@@ -60,55 +57,38 @@ func TestGenerateCronJob_BackoffLimit(t *testing.T) {
 	}
 	cfg := config.Config{Name: "myapp"}
 	cj := generator.GenerateCronJob(job, cfg)
-	if got := cj.Spec.JobTemplate.Spec.BackoffLimit; got == nil || *got != 2 {
-		t.Errorf("BackoffLimit = %v, want 2", got)
-	}
+	require.NotNil(t, cj.Spec.JobTemplate.Spec.BackoffLimit)
+	assert.Equal(t, int32(2), *cj.Spec.JobTemplate.Spec.BackoffLimit)
 }
 
 func TestGenerateCronJob_NilMaxRetries_DefaultsToZero(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	cj := generator.GenerateCronJob(cronJob(), cfg)
-	if got := cj.Spec.JobTemplate.Spec.BackoffLimit; got == nil || *got != 0 {
-		t.Errorf("BackoffLimit = %v, want 0", got)
-	}
+	require.NotNil(t, cj.Spec.JobTemplate.Spec.BackoffLimit)
+	assert.Equal(t, int32(0), *cj.Spec.JobTemplate.Spec.BackoffLimit)
 }
 
 func TestGenerateCronJob_Labels(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	cj := generator.GenerateCronJob(cronJob(), cfg)
-	if cj.Labels["app.kubernetes.io/name"] != "cleanup" {
-		t.Errorf("label name = %q, want %q", cj.Labels["app.kubernetes.io/name"], "cleanup")
-	}
-	if cj.Labels["app.kubernetes.io/part-of"] != "myapp" {
-		t.Errorf("label part-of = %q, want %q", cj.Labels["app.kubernetes.io/part-of"], "myapp")
-	}
-	if cj.Labels["app.kubernetes.io/managed-by"] != "deployer" {
-		t.Errorf("label managed-by = %q, want %q", cj.Labels["app.kubernetes.io/managed-by"], "deployer")
-	}
-	if got, want := len(cj.Labels), 3; got != want {
-		t.Errorf("len(labels) = %d, want %d", got, want)
-	}
+	assert.Equal(t, "cleanup", cj.Labels["app.kubernetes.io/name"])
+	assert.Equal(t, "myapp", cj.Labels["app.kubernetes.io/part-of"])
+	assert.Equal(t, "deployer", cj.Labels["app.kubernetes.io/managed-by"])
+	assert.Len(t, cj.Labels, 3)
 	podLabels := cj.Spec.JobTemplate.Spec.Template.Labels
 	for k, v := range cj.Labels {
-		if podLabels[k] != v {
-			t.Errorf("pod template label[%q] = %q, want %q", k, podLabels[k], v)
-		}
+		assert.Equal(t, v, podLabels[k], "pod template label %q", k)
 	}
 }
 
 func TestGenerateCronJob_PodTemplateAnnotation(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	cj := generator.GenerateCronJob(cronJob(), cfg)
-	ann := cj.Spec.JobTemplate.Spec.Template.Annotations
-	if ann["kubectl.kubernetes.io/default-container"] != "main" {
-		t.Errorf("default-container annotation = %q, want %q", ann["kubectl.kubernetes.io/default-container"], "main")
-	}
+	assert.Equal(t, "main", cj.Spec.JobTemplate.Spec.Template.Annotations["kubectl.kubernetes.io/default-container"])
 }
 
 func TestGenerateCronJob_RestartPolicy(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	cj := generator.GenerateCronJob(cronJob(), cfg)
-	if cj.Spec.JobTemplate.Spec.Template.Spec.RestartPolicy != "OnFailure" {
-		t.Errorf("RestartPolicy = %q, want OnFailure", cj.Spec.JobTemplate.Spec.Template.Spec.RestartPolicy)
-	}
+	assert.Equal(t, corev1.RestartPolicyOnFailure, cj.Spec.JobTemplate.Spec.Template.Spec.RestartPolicy)
 }
