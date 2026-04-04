@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 
 	"github.com/fergalhk-lab/deployer/config"
 	"github.com/fergalhk-lab/deployer/generator"
@@ -68,6 +69,10 @@ func TestBuildContainer_CPURequestOnly(t *testing.T) {
 	if _, ok := c.Resources.Limits[corev1.ResourceCPU]; ok {
 		t.Error("expected no CPU limit")
 	}
+	wantCPU := resource.MustParse("100m")
+	if !c.Resources.Requests[corev1.ResourceCPU].Equal(wantCPU) {
+		t.Errorf("CPU request = %v, want %v", c.Resources.Requests[corev1.ResourceCPU], wantCPU)
+	}
 }
 
 func TestBuildContainer_MemoryRequestAndLimit(t *testing.T) {
@@ -81,6 +86,13 @@ func TestBuildContainer_MemoryRequestAndLimit(t *testing.T) {
 	if c.Resources.Requests[corev1.ResourceMemory] != c.Resources.Limits[corev1.ResourceMemory] {
 		t.Error("expected memory request and limit to be equal")
 	}
+	wantMem := resource.MustParse("128Mi")
+	if !c.Resources.Requests[corev1.ResourceMemory].Equal(wantMem) {
+		t.Errorf("memory request = %v, want %v", c.Resources.Requests[corev1.ResourceMemory], wantMem)
+	}
+	if !c.Resources.Limits[corev1.ResourceMemory].Equal(wantMem) {
+		t.Errorf("memory limit = %v, want %v", c.Resources.Limits[corev1.ResourceMemory], wantMem)
+	}
 }
 
 func TestBuildPodSpec_ContainerIsMain(t *testing.T) {
@@ -90,5 +102,8 @@ func TestBuildPodSpec_ContainerIsMain(t *testing.T) {
 	}
 	if spec.Containers[0].Name != "main" {
 		t.Errorf("container name = %q, want %q", spec.Containers[0].Name, "main")
+	}
+	if spec.Containers[0].Image != "my-registry/api:1.0.0" {
+		t.Errorf("container image = %q, want %q", spec.Containers[0].Image, "my-registry/api:1.0.0")
 	}
 }
