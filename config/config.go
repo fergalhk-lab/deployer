@@ -1,5 +1,15 @@
 package config
 
+import "sigs.k8s.io/yaml"
+
+func FromYAML(data []byte) (Config, error) {
+	var cfg Config
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return Config{}, err
+	}
+	return cfg, nil
+}
+
 type Config struct {
 	Name     string    `json:"name"`
 	Services []Service `json:"services"`
