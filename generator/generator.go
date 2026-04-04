@@ -51,5 +51,13 @@ func Generate(cfg config.Config, opts Options) ([]byte, error) {
 		docs = append(docs, j)
 	}
 
+	for _, cj := range cfg.CronJobs {
+		c, err := yaml.Marshal(GenerateCronJob(cj, cfg))
+		if err != nil {
+			return nil, fmt.Errorf("marshal cronjob %s: %w", cj.Name, err)
+		}
+		docs = append(docs, c)
+	}
+
 	return bytes.Join(docs, []byte("---\n")), nil
 }

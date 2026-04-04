@@ -55,6 +55,19 @@ func fullConfig() config.Config {
 				},
 			},
 		},
+		CronJobs: []config.CronJob{
+			{
+				BaseJob: config.BaseJob{
+					Name: "cleanup",
+					Runnable: config.Runnable{
+						Image:     config.Image{Repository: "my-registry/cleanup", Tag: "1.0.0"},
+						Command:   []string{"./cleanup"},
+						Resources: config.Resources{CPU: "50m", Memory: "64Mi"},
+					},
+				},
+				Schedule: "0 2 * * *",
+			},
+		},
 	}
 }
 
