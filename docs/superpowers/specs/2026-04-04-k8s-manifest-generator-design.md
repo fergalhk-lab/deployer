@@ -27,14 +27,16 @@ deployer/
 │   └── config.go            # existing — unchanged
 └── generator/
     ├── generator.go         # Generate(cfg, opts) orchestrator
-    ├── labels.go            # buildLabels(name, component)
-    ├── namespace.go         # generateNamespace(cfg)
-    ├── podspec.go           # buildPodSpec(r) + buildContainer(r) — shared
-    ├── deployment.go        # generateDeployment(svc, cfg, opts)
-    ├── service.go           # generateService(svc, cfg)
-    ├── ingress.go           # generateIngress(svc, cfg, opts)
-    └── job.go               # generateJob(job, cfg)
+    ├── labels.go            # BuildLabels(name, partOf)
+    ├── namespace.go         # GenerateNamespace(cfg)
+    ├── podspec.go           # BuildPodSpec(r) + BuildContainer(r) — shared
+    ├── deployment.go        # GenerateDeployment(svc, cfg, opts)
+    ├── service.go           # GenerateService(svc, cfg)
+    ├── ingress.go           # GenerateIngress(svc, cfg, opts)
+    └── job.go               # GenerateJob(job, cfg)
 ```
+
+All generator functions are exported. Test files use `package generator_test` (external test package) so only exported identifiers are accessible.
 
 ## Options
 
@@ -72,7 +74,7 @@ Resources are emitted in this order: Namespace, then per-Service resources, then
 
 ## Pod Spec (Shared)
 
-`buildPodSpec(r config.Runnable) corev1.PodSpec` and `buildContainer(r config.Runnable) corev1.Container` are shared between `generateDeployment` and `generateJob`, since both embed `config.Runnable`.
+`BuildPodSpec(r config.Runnable) corev1.PodSpec` and `BuildContainer(r config.Runnable) corev1.Container` are shared between `GenerateDeployment` and `GenerateJob`, since both embed `config.Runnable`.
 
 Container spec from `Runnable`:
 - `image`: `<Repository>:<Tag>`
@@ -93,7 +95,7 @@ Applied to all resources (metadata labels) and pod template labels:
 
 Deployment/Service selectors use `app.kubernetes.io/name` only.
 
-`buildLabels(name, partOf string) map[string]string` in `labels.go` is the single source of truth, making it easy to extend in future.
+`BuildLabels(name, partOf string) map[string]string` in `labels.go` is the single source of truth, making it easy to extend in future.
 
 ## YAML Serialization
 
@@ -116,12 +118,12 @@ func Generate(cfg config.Config, opts Options) ([]byte, error)
 
 Each generator function is unit-tested by asserting on the returned Go struct (no YAML parsing in unit tests).
 
-Key unit test cases:
-- `generateDeployment`: image, CPU request-only, memory request+limit, labels, env
-- `generateJob`: backoffLimit from MaxRetries, nil MaxRetries defaults to 0
-- `generateService`: only generated when Ingress != nil
-- `generateIngress`: only generated when Public != nil, uses ingressClass
-- `buildLabels`: correct label keys/values
-- `buildPodSpec`: shared fields applied correctly to both Deployment and Job
+All test files use `package generator_test`. Key unit test cases:
+- `GenerateDeployment`: image, CPU request-only, memory request+limit, labels, env
+- `GenerateJob`: backoffLimit from MaxRetries, nil MaxRetries defaults to 0
+- `GenerateService`: only generated when Ingress != nil
+- `GenerateIngress`: only generated when Public != nil, uses ingressClass
+- `BuildLabels`: correct label keys/values
+- `BuildPodSpec`: shared fields applied correctly to both Deployment and Job
 
 One integration test in `generator_test.go` calls `Generate` with a full config and compares output against a golden file at `generator/testdata/expected.yaml`.
