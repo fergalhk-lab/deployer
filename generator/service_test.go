@@ -36,6 +36,9 @@ func TestGenerateService_Namespace(t *testing.T) {
 	if s.Namespace != "myapp" {
 		t.Errorf("Namespace = %q, want %q", s.Namespace, "myapp")
 	}
+	if s.Name != "api" {
+		t.Errorf("Name = %q, want %q", s.Name, "api")
+	}
 }
 
 func TestGenerateService_ClusterIP(t *testing.T) {
@@ -54,13 +57,44 @@ func TestGenerateService_Port(t *testing.T) {
 	if len(s.Spec.Ports) != 1 || s.Spec.Ports[0].Port != 8080 {
 		t.Errorf("port = %v, want 8080", s.Spec.Ports)
 	}
+	if s.Spec.Ports[0].Protocol != corev1.ProtocolTCP {
+		t.Errorf("Protocol = %q, want TCP", s.Spec.Ports[0].Protocol)
+	}
 }
 
 func TestGenerateService_SelectorUsesName(t *testing.T) {
 	svc := svcWithIngress()
 	cfg := config.Config{Name: "myapp"}
 	s := generator.GenerateService(svc, cfg)
-	if s.Spec.Selector["app.kubernetes.io/name"] != "api" {
-		t.Errorf("selector = %v, want name=api", s.Spec.Selector)
+	sel := s.Spec.Selector
+	if sel["app.kubernetes.io/name"] != "api" {
+		t.Errorf("selector name = %q, want %q", sel["app.kubernetes.io/name"], "api")
+	}
+	if _, ok := sel["app.kubernetes.io/part-of"]; ok {
+		t.Error("selector should not contain part-of label")
+	}
+	if _, ok := sel["app.kubernetes.io/managed-by"]; ok {
+		t.Error("selector should not contain managed-by label")
+	}
+	if len(sel) != 1 {
+		t.Errorf("selector len = %d, want 1", len(sel))
+	}
+}
+
+func TestGenerateService_Labels(t *testing.T) {
+	svc := svcWithIngress()
+	cfg := config.Config{Name: "myapp"}
+	s := generator.GenerateService(svc, cfg)
+	if s.Labels["app.kubernetes.io/name"] != "api" {
+		t.Errorf("label name = %q, want %q", s.Labels["app.kubernetes.io/name"], "api")
+	}
+	if s.Labels["app.kubernetes.io/part-of"] != "myapp" {
+		t.Errorf("label part-of = %q, want %q", s.Labels["app.kubernetes.io/part-of"], "myapp")
+	}
+	if s.Labels["app.kubernetes.io/managed-by"] != "deployer" {
+		t.Errorf("label managed-by = %q, want %q", s.Labels["app.kubernetes.io/managed-by"], "deployer")
+	}
+	if got, want := len(s.Labels), 3; got != want {
+		t.Errorf("len(labels) = %d, want %d", got, want)
 	}
 }
