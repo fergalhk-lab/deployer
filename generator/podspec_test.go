@@ -142,12 +142,18 @@ func TestBuildContainer_IAMEnvVars(t *testing.T) {
 
 func TestBuildContainer_IAMEnvVarsAfterUserEnv(t *testing.T) {
 	c := generator.BuildContainer(runnableWithIAM())
-	// User env (LOG_LEVEL) should come before IAM env vars
-	if len(c.Env) < 3 {
-		t.Fatalf("len(Env) = %d, want >= 3", len(c.Env))
+	n := len(c.Env)
+	if n < 3 {
+		t.Fatalf("len(Env) = %d, want >= 3", n)
 	}
 	if c.Env[0].Name != "LOG_LEVEL" {
 		t.Errorf("Env[0].Name = %q, want LOG_LEVEL", c.Env[0].Name)
+	}
+	if c.Env[n-2].Name != "AWS_ROLE_ARN" {
+		t.Errorf("Env[n-2].Name = %q, want AWS_ROLE_ARN", c.Env[n-2].Name)
+	}
+	if c.Env[n-1].Name != "AWS_WEB_IDENTITY_TOKEN_FILE" {
+		t.Errorf("Env[n-1].Name = %q, want AWS_WEB_IDENTITY_TOKEN_FILE", c.Env[n-1].Name)
 	}
 }
 

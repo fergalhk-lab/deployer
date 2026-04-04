@@ -11,6 +11,11 @@ import (
 
 const mainContainerName = "main"
 
+const (
+	iamTokenDir  = "/var/run/secrets/eks.amazonaws.com/serviceaccount"
+	iamTokenFile = iamTokenDir + "/token"
+)
+
 func BuildContainer(r config.Runnable) corev1.Container {
 	var env []corev1.EnvVar
 	for _, e := range r.Env {
@@ -26,7 +31,7 @@ func BuildContainer(r config.Runnable) corev1.Container {
 	if r.IAMRoleARN != "" {
 		env = append(env,
 			corev1.EnvVar{Name: "AWS_ROLE_ARN", Value: r.IAMRoleARN},
-			corev1.EnvVar{Name: "AWS_WEB_IDENTITY_TOKEN_FILE", Value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"},
+			corev1.EnvVar{Name: "AWS_WEB_IDENTITY_TOKEN_FILE", Value: iamTokenFile},
 		)
 	}
 
@@ -79,7 +84,7 @@ func BuildPodSpec(r config.Runnable, name string) corev1.PodSpec {
 		spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
 			{
 				Name:      "aws-iam-token",
-				MountPath: "/var/run/secrets/eks.amazonaws.com/serviceaccount",
+				MountPath: iamTokenDir,
 				ReadOnly:  true,
 			},
 		}
