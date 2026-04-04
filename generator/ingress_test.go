@@ -75,11 +75,46 @@ func TestGenerateIngress_BackendService(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	opts := generator.Options{IngressClass: "traefik"}
 	ing := generator.GenerateIngress(svc, cfg, opts)
+	if len(ing.Spec.Rules) == 0 || ing.Spec.Rules[0].HTTP == nil || len(ing.Spec.Rules[0].HTTP.Paths) == 0 {
+		t.Fatal("ingress has no rules/paths to check backend")
+	}
 	backend := ing.Spec.Rules[0].HTTP.Paths[0].Backend.Service
 	if backend.Name != "api" {
 		t.Errorf("backend service name = %q, want %q", backend.Name, "api")
 	}
 	if backend.Port.Number != 8080 {
 		t.Errorf("backend port = %d, want 8080", backend.Port.Number)
+	}
+}
+
+func TestGenerateIngress_Namespace(t *testing.T) {
+	svc := svcWithPublicIngress()
+	cfg := config.Config{Name: "myapp"}
+	opts := generator.Options{IngressClass: "traefik"}
+	ing := generator.GenerateIngress(svc, cfg, opts)
+	if ing.Name != "api" {
+		t.Errorf("Name = %q, want %q", ing.Name, "api")
+	}
+	if ing.Namespace != "myapp" {
+		t.Errorf("Namespace = %q, want %q", ing.Namespace, "myapp")
+	}
+}
+
+func TestGenerateIngress_Labels(t *testing.T) {
+	svc := svcWithPublicIngress()
+	cfg := config.Config{Name: "myapp"}
+	opts := generator.Options{IngressClass: "traefik"}
+	ing := generator.GenerateIngress(svc, cfg, opts)
+	if ing.Labels["app.kubernetes.io/name"] != "api" {
+		t.Errorf("label name = %q, want %q", ing.Labels["app.kubernetes.io/name"], "api")
+	}
+	if ing.Labels["app.kubernetes.io/part-of"] != "myapp" {
+		t.Errorf("label part-of = %q, want %q", ing.Labels["app.kubernetes.io/part-of"], "myapp")
+	}
+	if ing.Labels["app.kubernetes.io/managed-by"] != "deployer" {
+		t.Errorf("label managed-by = %q, want %q", ing.Labels["app.kubernetes.io/managed-by"], "deployer")
+	}
+	if got, want := len(ing.Labels), 3; got != want {
+		t.Errorf("len(labels) = %d, want %d", got, want)
 	}
 }
