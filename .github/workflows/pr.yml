@@ -1,0 +1,26 @@
+name: PR
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+
+jobs:
+  lint-title:
+    name: Lint PR title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test-build:
+    name: Test & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: go test ./...
+      - run: go build ./...
