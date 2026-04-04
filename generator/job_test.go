@@ -10,14 +10,16 @@ import (
 func initJob() config.InitJob {
 	maxRetries := uint(3)
 	return config.InitJob{
-		Name: "migrate",
-		Runnable: config.Runnable{
-			Image:     config.Image{Repository: "my-registry/migrate", Tag: "1.0.0"},
-			Command:   []string{"./migrate"},
-			Args:      []string{"up"},
-			Resources: config.Resources{CPU: "100m", Memory: "128Mi"},
+		BaseJob: config.BaseJob{
+			Name: "migrate",
+			Runnable: config.Runnable{
+				Image:     config.Image{Repository: "my-registry/migrate", Tag: "1.0.0"},
+				Command:   []string{"./migrate"},
+				Args:      []string{"up"},
+				Resources: config.Resources{CPU: "100m", Memory: "128Mi"},
+			},
+			MaxRetries: &maxRetries,
 		},
-		MaxRetries: &maxRetries,
 	}
 }
 
@@ -50,12 +52,14 @@ func TestGenerateJob_BackoffLimit(t *testing.T) {
 
 func TestGenerateJob_NilMaxRetries_DefaultsToZero(t *testing.T) {
 	job := config.InitJob{
-		Name: "migrate",
-		Runnable: config.Runnable{
-			Image:     config.Image{Repository: "my-registry/migrate", Tag: "1.0.0"},
-			Resources: config.Resources{CPU: "100m", Memory: "128Mi"},
+		BaseJob: config.BaseJob{
+			Name: "migrate",
+			Runnable: config.Runnable{
+				Image:     config.Image{Repository: "my-registry/migrate", Tag: "1.0.0"},
+				Resources: config.Resources{CPU: "100m", Memory: "128Mi"},
+			},
+			MaxRetries: nil,
 		},
-		MaxRetries: nil,
 	}
 	cfg := config.Config{Name: "myapp"}
 	j := generator.GenerateJob(job, cfg)

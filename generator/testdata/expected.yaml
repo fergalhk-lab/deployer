@@ -166,3 +166,41 @@ spec:
             memory: 128Mi
       restartPolicy: OnFailure
 status: {}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: cleanup
+    app.kubernetes.io/part-of: myapp
+  name: cleanup
+  namespace: myapp
+spec:
+  jobTemplate:
+    metadata: {}
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          annotations:
+            kubectl.kubernetes.io/default-container: main
+          labels:
+            app.kubernetes.io/managed-by: deployer
+            app.kubernetes.io/name: cleanup
+            app.kubernetes.io/part-of: myapp
+        spec:
+          containers:
+          - command:
+            - ./cleanup
+            image: my-registry/cleanup:1.0.0
+            name: main
+            resources:
+              limits:
+                memory: 64Mi
+              requests:
+                cpu: 50m
+                memory: 64Mi
+          restartPolicy: OnFailure
+  schedule: 0 2 * * *
+status: {}

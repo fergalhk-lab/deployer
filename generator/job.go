@@ -8,9 +8,7 @@ import (
 	"github.com/fergalhk-lab/deployer/config"
 )
 
-func GenerateJob(job config.InitJob, cfg config.Config) *batchv1.Job {
-	labels := BuildLabels(job.Name, cfg.Name)
-
+func buildJobSpec(job config.BaseJob, labels map[string]string) batchv1.JobSpec {
 	var backoffLimit int32
 	if job.MaxRetries != nil {
 		backoffLimit = int32(*job.MaxRetries)
@@ -18,6 +16,23 @@ func GenerateJob(job config.InitJob, cfg config.Config) *batchv1.Job {
 
 	podSpec := BuildPodSpec(job.Runnable)
 	podSpec.RestartPolicy = corev1.RestartPolicyOnFailure
+
+	return batchv1.JobSpec{
+		BackoffLimit: &backoffLimit,
+		Template: corev1.PodTemplateSpec{
+			ObjectMeta: metav1.ObjectMeta{
+				Labels: labels,
+				Annotations: map[string]string{
+					"kubectl.kubernetes.io/default-container": mainContainerName,
+				},
+			},
+			Spec: podSpec,
+		},
+	}
+}
+
+func GenerateJob(job config.InitJob, cfg config.Config) *batchv1.Job {
+	labels := BuildLabels(job.Name, cfg.Name)
 
 	return &batchv1.Job{
 		TypeMeta: metav1.TypeMeta{
@@ -29,17 +44,6 @@ func GenerateJob(job config.InitJob, cfg config.Config) *batchv1.Job {
 			Namespace: cfg.Name,
 			Labels:    labels,
 		},
-		Spec: batchv1.JobSpec{
-			BackoffLimit: &backoffLimit,
-			Template: corev1.PodTemplateSpec{
-				ObjectMeta: metav1.ObjectMeta{
-					Labels: labels,
-					Annotations: map[string]string{
-						"kubectl.kubernetes.io/default-container": mainContainerName,
-					},
-				},
-				Spec: podSpec,
-			},
-		},
+		Spec: buildJobSpec(job.BaseJob, labels),
 	}
 }
