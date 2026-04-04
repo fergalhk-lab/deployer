@@ -5,42 +5,32 @@ import (
 
 	"github.com/fergalhk-lab/deployer/config"
 	"github.com/fergalhk-lab/deployer/generator"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGenerateServiceAccount_TypeMeta(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	sa := generator.GenerateServiceAccount("api", cfg)
-	if sa.APIVersion != "v1" || sa.Kind != "ServiceAccount" {
-		t.Errorf("TypeMeta = %q/%q, want v1/ServiceAccount", sa.APIVersion, sa.Kind)
-	}
+	assert.Equal(t, "v1", sa.APIVersion)
+	assert.Equal(t, "ServiceAccount", sa.Kind)
 }
 
 func TestGenerateServiceAccount_Name(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	sa := generator.GenerateServiceAccount("api", cfg)
-	if sa.Name != "api" {
-		t.Errorf("Name = %q, want %q", sa.Name, "api")
-	}
+	assert.Equal(t, "api", sa.Name)
 }
 
 func TestGenerateServiceAccount_Namespace(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	sa := generator.GenerateServiceAccount("api", cfg)
-	if sa.Namespace != "myapp" {
-		t.Errorf("Namespace = %q, want %q", sa.Namespace, "myapp")
-	}
+	assert.Equal(t, "myapp", sa.Namespace)
 }
 
 func TestGenerateServiceAccount_Labels(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	sa := generator.GenerateServiceAccount("api", cfg)
-	if sa.Labels["app.kubernetes.io/name"] != "api" {
-		t.Errorf("label name = %q, want %q", sa.Labels["app.kubernetes.io/name"], "api")
-	}
-	if sa.Labels["app.kubernetes.io/part-of"] != "myapp" {
-		t.Errorf("label part-of = %q, want %q", sa.Labels["app.kubernetes.io/part-of"], "myapp")
-	}
-	if sa.Labels["app.kubernetes.io/managed-by"] != "deployer" {
-		t.Errorf("label managed-by = %q, want %q", sa.Labels["app.kubernetes.io/managed-by"], "deployer")
-	}
+	assert.Equal(t, "api", sa.Labels["app.kubernetes.io/name"])
+	assert.Equal(t, "myapp", sa.Labels["app.kubernetes.io/part-of"])
+	assert.Equal(t, "deployer", sa.Labels["app.kubernetes.io/managed-by"])
 }
