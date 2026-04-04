@@ -1,0 +1,94 @@
+package generator_test
+
+import (
+	"testing"
+
+	corev1 "k8s.io/api/core/v1"
+
+	"github.com/fergalhk-lab/deployer/config"
+	"github.com/fergalhk-lab/deployer/generator"
+)
+
+func runnable() config.Runnable {
+	rawVal := "info"
+	return config.Runnable{
+		Image:   config.Image{Repository: "my-registry/api", Tag: "1.0.0"},
+		Command: []string{"./api"},
+		Args:    []string{"--port=8080"},
+		Resources: config.Resources{
+			CPU:    "100m",
+			Memory: "128Mi",
+		},
+		Env: []config.Env{
+			{Name: "LOG_LEVEL", RawValue: &rawVal},
+			{Name: "IGNORED", RawValue: nil}, // nil RawValue should be skipped
+		},
+	}
+}
+
+func TestBuildContainer_Name(t *testing.T) {
+	c := generator.BuildContainer(runnable())
+	if c.Name != "main" {
+		t.Errorf("Name = %q, want %q", c.Name, "main")
+	}
+}
+
+func TestBuildContainer_Image(t *testing.T) {
+	c := generator.BuildContainer(runnable())
+	if c.Image != "my-registry/api:1.0.0" {
+		t.Errorf("Image = %q, want %q", c.Image, "my-registry/api:1.0.0")
+	}
+}
+
+func TestBuildContainer_CommandAndArgs(t *testing.T) {
+	c := generator.BuildContainer(runnable())
+	if len(c.Command) != 1 || c.Command[0] != "./api" {
+		t.Errorf("Command = %v, want [./api]", c.Command)
+	}
+	if len(c.Args) != 1 || c.Args[0] != "--port=8080" {
+		t.Errorf("Args = %v, want [--port=8080]", c.Args)
+	}
+}
+
+func TestBuildContainer_EnvSkipsNilRawValue(t *testing.T) {
+	c := generator.BuildContainer(runnable())
+	if len(c.Env) != 1 {
+		t.Fatalf("len(Env) = %d, want 1", len(c.Env))
+	}
+	if c.Env[0].Name != "LOG_LEVEL" || c.Env[0].Value != "info" {
+		t.Errorf("Env[0] = %+v, want {Name:LOG_LEVEL Value:info}", c.Env[0])
+	}
+}
+
+func TestBuildContainer_CPURequestOnly(t *testing.T) {
+	c := generator.BuildContainer(runnable())
+	if _, ok := c.Resources.Requests[corev1.ResourceCPU]; !ok {
+		t.Error("expected CPU request to be set")
+	}
+	if _, ok := c.Resources.Limits[corev1.ResourceCPU]; ok {
+		t.Error("expected no CPU limit")
+	}
+}
+
+func TestBuildContainer_MemoryRequestAndLimit(t *testing.T) {
+	c := generator.BuildContainer(runnable())
+	if _, ok := c.Resources.Requests[corev1.ResourceMemory]; !ok {
+		t.Error("expected memory request to be set")
+	}
+	if _, ok := c.Resources.Limits[corev1.ResourceMemory]; !ok {
+		t.Error("expected memory limit to be set")
+	}
+	if c.Resources.Requests[corev1.ResourceMemory] != c.Resources.Limits[corev1.ResourceMemory] {
+		t.Error("expected memory request and limit to be equal")
+	}
+}
+
+func TestBuildPodSpec_ContainerIsMain(t *testing.T) {
+	spec := generator.BuildPodSpec(runnable())
+	if len(spec.Containers) != 1 {
+		t.Fatalf("len(Containers) = %d, want 1", len(spec.Containers))
+	}
+	if spec.Containers[0].Name != "main" {
+		t.Errorf("container name = %q, want %q", spec.Containers[0].Name, "main")
+	}
+}
