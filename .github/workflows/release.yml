@@ -18,19 +18,51 @@ jobs:
       - run: go test ./...
 
   release:
-    name: semantic-release
+    name: Tag
     runs-on: ubuntu-latest
     needs: test
+    permissions:
+      contents: write
+    outputs:
+      tag: ${{ steps.semantic.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - id: semantic
+        run: |
+          BEFORE=$(git tag --sort=-v:refname | head -1 || echo "")
+          npx semantic-release
+          AFTER=$(git tag --sort=-v:refname | head -1 || echo "")
+          if [ "$AFTER" != "$BEFORE" ]; then
+            echo "tag=$AFTER" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish:
+    name: Publish
+    runs-on: ubuntu-latest
+    needs: release
+    if: ${{ needs.release.outputs.tag != '' }}
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.RELEASE_TOKEN }}
-      - uses: actions/setup-node@v4
+          ref: ${{ needs.release.outputs.tag }}
+      - uses: actions/setup-go@v5
         with:
-          node-version: '20'
-      - run: npx semantic-release
+          go-version-file: go.mod
+          cache: true
+      - uses: goreleaser/goreleaser-action@v6
+        with:
+          distribution: goreleaser
+          version: "~> v2"
+          args: release --clean
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
