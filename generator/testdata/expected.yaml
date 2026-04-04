@@ -64,7 +64,7 @@ spec:
   ports:
   - port: 8080
     protocol: TCP
-    targetPort: 0
+    targetPort: 8080
   selector:
     app.kubernetes.io/name: api
   type: ClusterIP

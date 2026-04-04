@@ -3,6 +3,7 @@ package generator
 import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
 
 	"github.com/fergalhk-lab/deployer/config"
 )
@@ -25,8 +26,9 @@ func GenerateService(svc config.Service, cfg config.Config) *corev1.Service {
 			},
 			Ports: []corev1.ServicePort{
 				{
-					Port:     int32(svc.Ingress.Port),
-					Protocol: corev1.ProtocolTCP,
+					Port:       int32(svc.Ingress.Port),
+					TargetPort: intstr.FromInt32(int32(svc.Ingress.Port)),
+					Protocol:   corev1.ProtocolTCP,
 				},
 			},
 		},

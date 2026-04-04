@@ -1,6 +1,7 @@
 package generator_test
 
 import (
+	"bytes"
 	"flag"
 	"os"
 	"testing"
@@ -96,8 +97,14 @@ func TestGenerate_ValidYAML(t *testing.T) {
 		t.Fatalf("Generate: %v", err)
 	}
 
-	var m map[string]interface{}
-	if err := yaml.Unmarshal(got, &m); err != nil {
-		t.Errorf("output is not valid YAML: %v", err)
+	parts := bytes.Split(got, []byte("---\n"))
+	for i, part := range parts {
+		if len(bytes.TrimSpace(part)) == 0 {
+			continue
+		}
+		var m map[string]interface{}
+		if err := yaml.Unmarshal(part, &m); err != nil {
+			t.Errorf("document %d is not valid YAML: %v", i, err)
+		}
 	}
 }
