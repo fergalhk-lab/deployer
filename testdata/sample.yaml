@@ -1,0 +1,37 @@
+name: myapp
+services:
+  - name: api
+    image:
+      repository: my-registry/api
+      tag: "1.0.0"
+    resources:
+      cpu: "100m"
+      memory: "128Mi"
+    command: ["./api"]
+    args: ["--port=8080"]
+    env:
+      - name: LOG_LEVEL
+        rawValue: "info"
+    ingress:
+      port: 8080
+      public:
+        domain: api.example.com
+  - name: worker
+    image:
+      repository: my-registry/worker
+      tag: "1.0.0"
+    resources:
+      cpu: "200m"
+      memory: "256Mi"
+    command: ["./worker"]
+initJobs:
+  - name: migrate
+    image:
+      repository: my-registry/migrate
+      tag: "1.0.0"
+    resources:
+      cpu: "100m"
+      memory: "128Mi"
+    command: ["./migrate"]
+    args: ["up"]
+    maxRetries: 3
