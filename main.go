@@ -20,13 +20,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	data, err := os.ReadFile(flag.Arg(0))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error reading config: %v\n", err)
-		os.Exit(1)
-	}
-
-	cfg, err := config.FromYAML(data)
+	cfg, err := config.FromYAML(flag.Arg(0))
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error parsing config: %v\n", err)
 		os.Exit(1)

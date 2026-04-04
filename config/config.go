@@ -1,8 +1,16 @@
 package config
 
-import "sigs.k8s.io/yaml"
+import (
+	"os"
 
-func FromYAML(data []byte) (Config, error) {
+	"sigs.k8s.io/yaml"
+)
+
+func FromYAML(path string) (Config, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Config{}, err
+	}
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return Config{}, err
