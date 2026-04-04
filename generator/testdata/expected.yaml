@@ -1,0 +1,168 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: myapp
+    app.kubernetes.io/part-of: myapp
+  name: myapp
+spec: {}
+status: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: myapp
+  name: api
+  namespace: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: main
+      labels:
+        app.kubernetes.io/managed-by: deployer
+        app.kubernetes.io/name: api
+        app.kubernetes.io/part-of: myapp
+    spec:
+      containers:
+      - args:
+        - --port=8080
+        command:
+        - ./api
+        env:
+        - name: LOG_LEVEL
+          value: info
+        image: my-registry/api:1.0.0
+        name: main
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: myapp
+  name: api
+  namespace: myapp
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 0
+  selector:
+    app.kubernetes.io/name: api
+  type: ClusterIP
+status:
+  loadBalancer: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: myapp
+  name: api
+  namespace: myapp
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: api.example.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: api
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+status:
+  loadBalancer: {}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: worker
+    app.kubernetes.io/part-of: myapp
+  name: worker
+  namespace: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: worker
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: main
+      labels:
+        app.kubernetes.io/managed-by: deployer
+        app.kubernetes.io/name: worker
+        app.kubernetes.io/part-of: myapp
+    spec:
+      containers:
+      - image: my-registry/worker:1.0.0
+        name: main
+        resources:
+          limits:
+            memory: 256Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+status: {}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: migrate
+    app.kubernetes.io/part-of: myapp
+  name: migrate
+  namespace: myapp
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: main
+      labels:
+        app.kubernetes.io/managed-by: deployer
+        app.kubernetes.io/name: migrate
+        app.kubernetes.io/part-of: myapp
+    spec:
+      containers:
+      - args:
+        - up
+        command:
+        - ./migrate
+        image: my-registry/migrate:1.0.0
+        name: main
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      restartPolicy: OnFailure
+status: {}
