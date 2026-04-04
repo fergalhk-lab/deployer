@@ -41,8 +41,9 @@ func BuildContainer(r config.Runnable) corev1.Container {
 	}
 }
 
-func BuildPodSpec(r config.Runnable) corev1.PodSpec {
+func BuildPodSpec(r config.Runnable, name string) corev1.PodSpec {
 	return corev1.PodSpec{
-		Containers: []corev1.Container{BuildContainer(r)},
+		ServiceAccountName: name,
+		Containers:         []corev1.Container{BuildContainer(r)},
 	}
 }

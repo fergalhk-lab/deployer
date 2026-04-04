@@ -37,7 +37,7 @@ func GenerateDeployment(svc config.Service, cfg config.Config) *appsv1.Deploymen
 						"kubectl.kubernetes.io/default-container": mainContainerName,
 					},
 				},
-				Spec: BuildPodSpec(svc.Runnable),
+				Spec: BuildPodSpec(svc.Runnable, svc.Name),
 			},
 		},
 	}

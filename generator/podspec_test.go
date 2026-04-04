@@ -96,7 +96,7 @@ func TestBuildContainer_MemoryRequestAndLimit(t *testing.T) {
 }
 
 func TestBuildPodSpec_ContainerIsMain(t *testing.T) {
-	spec := generator.BuildPodSpec(runnable())
+	spec := generator.BuildPodSpec(runnable(), "test")
 	if len(spec.Containers) != 1 {
 		t.Fatalf("len(Containers) = %d, want 1", len(spec.Containers))
 	}
@@ -105,5 +105,12 @@ func TestBuildPodSpec_ContainerIsMain(t *testing.T) {
 	}
 	if spec.Containers[0].Image != "my-registry/api:1.0.0" {
 		t.Errorf("container image = %q, want %q", spec.Containers[0].Image, "my-registry/api:1.0.0")
+	}
+}
+
+func TestBuildPodSpec_ServiceAccountName(t *testing.T) {
+	spec := generator.BuildPodSpec(runnable(), "myservice")
+	if spec.ServiceAccountName != "myservice" {
+		t.Errorf("ServiceAccountName = %q, want %q", spec.ServiceAccountName, "myservice")
 	}
 }

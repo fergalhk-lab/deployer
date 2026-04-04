@@ -14,7 +14,7 @@ func buildJobSpec(job config.BaseJob, labels map[string]string) batchv1.JobSpec 
 		backoffLimit = int32(*job.MaxRetries)
 	}
 
-	podSpec := BuildPodSpec(job.Runnable)
+	podSpec := BuildPodSpec(job.Runnable, job.Name)
 	podSpec.RestartPolicy = corev1.RestartPolicyOnFailure
 
 	return batchv1.JobSpec{
