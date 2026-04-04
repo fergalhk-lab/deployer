@@ -36,6 +36,9 @@ func TestGenerateDeployment_Namespace(t *testing.T) {
 	if d.Namespace != "myapp" {
 		t.Errorf("Namespace = %q, want %q", d.Namespace, "myapp")
 	}
+	if d.Name != "api" {
+		t.Errorf("Name = %q, want %q", d.Name, "api")
+	}
 }
 
 func TestGenerateDeployment_OneReplica(t *testing.T) {
@@ -55,6 +58,15 @@ func TestGenerateDeployment_Labels(t *testing.T) {
 	if d.Labels["app.kubernetes.io/part-of"] != "myapp" {
 		t.Errorf("label part-of = %q, want %q", d.Labels["app.kubernetes.io/part-of"], "myapp")
 	}
+	if d.Labels["app.kubernetes.io/managed-by"] != "deployer" {
+		t.Errorf("label managed-by = %q, want %q", d.Labels["app.kubernetes.io/managed-by"], "deployer")
+	}
+	// Pod template labels must match ObjectMeta labels
+	for k, v := range d.Labels {
+		if d.Spec.Template.Labels[k] != v {
+			t.Errorf("pod template label[%q] = %q, want %q", k, d.Spec.Template.Labels[k], v)
+		}
+	}
 }
 
 func TestGenerateDeployment_SelectorUsesName(t *testing.T) {
@@ -66,6 +78,12 @@ func TestGenerateDeployment_SelectorUsesName(t *testing.T) {
 	}
 	if _, ok := sel["app.kubernetes.io/part-of"]; ok {
 		t.Error("selector should not contain part-of label")
+	}
+	if _, ok := sel["app.kubernetes.io/managed-by"]; ok {
+		t.Error("selector should not contain managed-by label")
+	}
+	if len(sel) != 1 {
+		t.Errorf("selector len = %d, want 1", len(sel))
 	}
 }
 
