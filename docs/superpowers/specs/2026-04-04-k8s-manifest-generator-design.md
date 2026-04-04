@@ -77,6 +77,7 @@ Resources are emitted in this order: Namespace, then per-Service resources, then
 `BuildPodSpec(r config.Runnable) corev1.PodSpec` and `BuildContainer(r config.Runnable) corev1.Container` are shared between `GenerateDeployment` and `GenerateJob`, since both embed `config.Runnable`.
 
 Container spec from `Runnable`:
+- `name`: always `main`
 - `image`: `<Repository>:<Tag>`
 - `command` + `args` mapped directly
 - `env`: `rawValue` → `env[].value`; env entries where `RawValue` is nil are skipped (reserved for future types like `persistentRandom`)
@@ -94,6 +95,8 @@ Applied to all resources (metadata labels) and pod template labels:
 | `app.kubernetes.io/managed-by` | `deployer` |
 
 Deployment/Service selectors use `app.kubernetes.io/name` only.
+
+Pod template metadata also carries the annotation `kubectl.kubernetes.io/default-container: main`.
 
 `BuildLabels(name, partOf string) map[string]string` in `labels.go` is the single source of truth, making it easy to extend in future.
 
