@@ -114,3 +114,48 @@ func TestBuildPodSpec_ServiceAccountName(t *testing.T) {
 		t.Errorf("ServiceAccountName = %q, want %q", spec.ServiceAccountName, "myservice")
 	}
 }
+
+func runnableWithIAM() config.Runnable {
+	r := runnable()
+	r.IAMRoleARN = "arn:aws:iam::123456789012:role/my-role"
+	return r
+}
+
+func TestBuildContainer_IAMEnvVars(t *testing.T) {
+	c := generator.BuildContainer(runnableWithIAM())
+	var roleARN, tokenFile string
+	for _, e := range c.Env {
+		switch e.Name {
+		case "AWS_ROLE_ARN":
+			roleARN = e.Value
+		case "AWS_WEB_IDENTITY_TOKEN_FILE":
+			tokenFile = e.Value
+		}
+	}
+	if roleARN != "arn:aws:iam::123456789012:role/my-role" {
+		t.Errorf("AWS_ROLE_ARN = %q, want %q", roleARN, "arn:aws:iam::123456789012:role/my-role")
+	}
+	if tokenFile != "/var/run/secrets/eks.amazonaws.com/serviceaccount/token" {
+		t.Errorf("AWS_WEB_IDENTITY_TOKEN_FILE = %q, want %q", tokenFile, "/var/run/secrets/eks.amazonaws.com/serviceaccount/token")
+	}
+}
+
+func TestBuildContainer_IAMEnvVarsAfterUserEnv(t *testing.T) {
+	c := generator.BuildContainer(runnableWithIAM())
+	// User env (LOG_LEVEL) should come before IAM env vars
+	if len(c.Env) < 3 {
+		t.Fatalf("len(Env) = %d, want >= 3", len(c.Env))
+	}
+	if c.Env[0].Name != "LOG_LEVEL" {
+		t.Errorf("Env[0].Name = %q, want LOG_LEVEL", c.Env[0].Name)
+	}
+}
+
+func TestBuildContainer_NoIAMEnvVarsWithoutRoleARN(t *testing.T) {
+	c := generator.BuildContainer(runnable())
+	for _, e := range c.Env {
+		if e.Name == "AWS_ROLE_ARN" || e.Name == "AWS_WEB_IDENTITY_TOKEN_FILE" {
+			t.Errorf("unexpected IAM env var %q in non-IAM runnable", e.Name)
+		}
+	}
+}

@@ -23,6 +23,13 @@ func BuildContainer(r config.Runnable) corev1.Container {
 		})
 	}
 
+	if r.IAMRoleARN != "" {
+		env = append(env,
+			corev1.EnvVar{Name: "AWS_ROLE_ARN", Value: r.IAMRoleARN},
+			corev1.EnvVar{Name: "AWS_WEB_IDENTITY_TOKEN_FILE", Value: "/var/run/secrets/eks.amazonaws.com/serviceaccount/token"},
+		)
+	}
+
 	return corev1.Container{
 		Name:    mainContainerName,
 		Image:   fmt.Sprintf("%s:%s", r.Image.Repository, r.Image.Tag),
