@@ -30,11 +30,12 @@ type CronJob struct {
 }
 
 type Runnable struct {
-	Image     Image     `json:"image"`
-	Resources Resources `json:"resources"`
-	Command   []string  `json:"command"`
-	Args      []string  `json:"args"`
-	Env       []Env     `json:"env"`
+	Image      Image     `json:"image"`
+	Resources  Resources `json:"resources"`
+	Command    []string  `json:"command"`
+	Args       []string  `json:"args"`
+	Env        []Env     `json:"env"`
+	IAMRoleARN string    `json:"iamRoleARN,omitempty"`
 }
 
 type Ingress struct {
