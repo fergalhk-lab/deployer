@@ -8,6 +8,8 @@ import (
 
 	"github.com/fergalhk-lab/deployer/config"
 	"github.com/fergalhk-lab/deployer/generator"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"sigs.k8s.io/yaml"
 )
 
@@ -77,30 +79,20 @@ func TestGenerate_GoldenFile(t *testing.T) {
 	opts := generator.Options{IngressClass: "traefik"}
 
 	got, err := generator.Generate(cfg, opts)
-	if err != nil {
-		t.Fatalf("Generate: %v", err)
-	}
+	require.NoError(t, err, "Generate")
 
 	goldenPath := "testdata/expected.yaml"
 
 	if *update {
-		if err := os.MkdirAll("testdata", 0755); err != nil {
-			t.Fatalf("mkdir testdata: %v", err)
-		}
-		if err := os.WriteFile(goldenPath, got, 0644); err != nil {
-			t.Fatalf("write golden: %v", err)
-		}
+		require.NoError(t, os.MkdirAll("testdata", 0755), "mkdir testdata")
+		require.NoError(t, os.WriteFile(goldenPath, got, 0644), "write golden")
 		return
 	}
 
 	expected, err := os.ReadFile(goldenPath)
-	if err != nil {
-		t.Fatalf("read golden file %q: %v (run with -update to generate)", goldenPath, err)
-	}
+	require.NoError(t, err, "read golden file %q (run with -update to generate)", goldenPath)
 
-	if string(got) != string(expected) {
-		t.Errorf("output differs from golden file\ngot:\n%s\nwant:\n%s", got, expected)
-	}
+	assert.Equal(t, string(expected), string(got))
 }
 
 // Ensure Generate returns valid YAML by round-tripping through yaml.Unmarshal
@@ -109,9 +101,7 @@ func TestGenerate_ValidYAML(t *testing.T) {
 	opts := generator.Options{IngressClass: "traefik"}
 
 	got, err := generator.Generate(cfg, opts)
-	if err != nil {
-		t.Fatalf("Generate: %v", err)
-	}
+	require.NoError(t, err, "Generate")
 
 	parts := bytes.Split(got, []byte("---\n"))
 	for i, part := range parts {
@@ -119,8 +109,6 @@ func TestGenerate_ValidYAML(t *testing.T) {
 			continue
 		}
 		var m map[string]interface{}
-		if err := yaml.Unmarshal(part, &m); err != nil {
-			t.Errorf("document %d is not valid YAML: %v", i, err)
-		}
+		assert.NoError(t, yaml.Unmarshal(part, &m), "document %d is not valid YAML", i)
 	}
 }
