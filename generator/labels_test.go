@@ -9,6 +9,10 @@ import (
 func TestBuildLabels(t *testing.T) {
 	labels := generator.BuildLabels("api", "myapp")
 
+	if got, want := len(labels), 3; got != want {
+		t.Errorf("len(labels) = %d, want %d", got, want)
+	}
+
 	tests := []struct {
 		key  string
 		want string
