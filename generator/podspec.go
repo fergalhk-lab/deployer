@@ -49,8 +49,41 @@ func BuildContainer(r config.Runnable) corev1.Container {
 }
 
 func BuildPodSpec(r config.Runnable, name string) corev1.PodSpec {
-	return corev1.PodSpec{
+	container := BuildContainer(r)
+
+	spec := corev1.PodSpec{
 		ServiceAccountName: name,
-		Containers:         []corev1.Container{BuildContainer(r)},
+		Containers:         []corev1.Container{container},
 	}
+
+	if r.IAMRoleARN != "" {
+		expiry := int64(86400)
+		spec.Volumes = []corev1.Volume{
+			{
+				Name: "aws-iam-token",
+				VolumeSource: corev1.VolumeSource{
+					Projected: &corev1.ProjectedVolumeSource{
+						Sources: []corev1.VolumeProjection{
+							{
+								ServiceAccountToken: &corev1.ServiceAccountTokenProjection{
+									Audience:          "sts.amazonaws.com",
+									ExpirationSeconds: &expiry,
+									Path:              "token",
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+		spec.Containers[0].VolumeMounts = []corev1.VolumeMount{
+			{
+				Name:      "aws-iam-token",
+				MountPath: "/var/run/secrets/eks.amazonaws.com/serviceaccount",
+				ReadOnly:  true,
+			},
+		}
+	}
+
+	return spec
 }

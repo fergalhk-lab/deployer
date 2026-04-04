@@ -159,3 +159,63 @@ func TestBuildContainer_NoIAMEnvVarsWithoutRoleARN(t *testing.T) {
 		}
 	}
 }
+
+func TestBuildPodSpec_IAMVolume(t *testing.T) {
+	spec := generator.BuildPodSpec(runnableWithIAM(), "myservice")
+	if len(spec.Volumes) != 1 {
+		t.Fatalf("len(Volumes) = %d, want 1", len(spec.Volumes))
+	}
+	vol := spec.Volumes[0]
+	if vol.Name != "aws-iam-token" {
+		t.Errorf("Volume name = %q, want %q", vol.Name, "aws-iam-token")
+	}
+	if vol.Projected == nil {
+		t.Fatal("Volume.Projected is nil")
+	}
+	if len(vol.Projected.Sources) != 1 {
+		t.Fatalf("len(Projected.Sources) = %d, want 1", len(vol.Projected.Sources))
+	}
+	src := vol.Projected.Sources[0]
+	if src.ServiceAccountToken == nil {
+		t.Fatal("Sources[0].ServiceAccountToken is nil")
+	}
+	if src.ServiceAccountToken.Audience != "sts.amazonaws.com" {
+		t.Errorf("Audience = %q, want %q", src.ServiceAccountToken.Audience, "sts.amazonaws.com")
+	}
+	if src.ServiceAccountToken.ExpirationSeconds == nil || *src.ServiceAccountToken.ExpirationSeconds != 86400 {
+		t.Errorf("ExpirationSeconds = %v, want 86400", src.ServiceAccountToken.ExpirationSeconds)
+	}
+	if src.ServiceAccountToken.Path != "token" {
+		t.Errorf("Path = %q, want %q", src.ServiceAccountToken.Path, "token")
+	}
+}
+
+func TestBuildPodSpec_IAMVolumeMount(t *testing.T) {
+	spec := generator.BuildPodSpec(runnableWithIAM(), "myservice")
+	if len(spec.Containers) != 1 {
+		t.Fatalf("len(Containers) = %d, want 1", len(spec.Containers))
+	}
+	mounts := spec.Containers[0].VolumeMounts
+	if len(mounts) != 1 {
+		t.Fatalf("len(VolumeMounts) = %d, want 1", len(mounts))
+	}
+	if mounts[0].Name != "aws-iam-token" {
+		t.Errorf("VolumeMount name = %q, want %q", mounts[0].Name, "aws-iam-token")
+	}
+	if mounts[0].MountPath != "/var/run/secrets/eks.amazonaws.com/serviceaccount" {
+		t.Errorf("MountPath = %q, want %q", mounts[0].MountPath, "/var/run/secrets/eks.amazonaws.com/serviceaccount")
+	}
+	if !mounts[0].ReadOnly {
+		t.Error("VolumeMount.ReadOnly = false, want true")
+	}
+}
+
+func TestBuildPodSpec_NoIAMWithoutRoleARN(t *testing.T) {
+	spec := generator.BuildPodSpec(runnable(), "myservice")
+	if len(spec.Volumes) != 0 {
+		t.Errorf("len(Volumes) = %d, want 0", len(spec.Volumes))
+	}
+	if len(spec.Containers[0].VolumeMounts) != 0 {
+		t.Errorf("len(VolumeMounts) = %d, want 0", len(spec.Containers[0].VolumeMounts))
+	}
+}
