@@ -20,6 +20,12 @@ func Generate(cfg config.Config, opts Options) ([]byte, error) {
 	docs = append(docs, ns)
 
 	for _, svc := range cfg.Services {
+		sa, err := yaml.Marshal(GenerateServiceAccount(svc.Name, cfg))
+		if err != nil {
+			return nil, fmt.Errorf("marshal service account %s: %w", svc.Name, err)
+		}
+		docs = append(docs, sa)
+
 		d, err := yaml.Marshal(GenerateDeployment(svc, cfg))
 		if err != nil {
 			return nil, fmt.Errorf("marshal deployment %s: %w", svc.Name, err)
@@ -44,6 +50,12 @@ func Generate(cfg config.Config, opts Options) ([]byte, error) {
 	}
 
 	for _, job := range cfg.InitJobs {
+		sa, err := yaml.Marshal(GenerateServiceAccount(job.Name, cfg))
+		if err != nil {
+			return nil, fmt.Errorf("marshal service account %s: %w", job.Name, err)
+		}
+		docs = append(docs, sa)
+
 		j, err := yaml.Marshal(GenerateJob(job, cfg))
 		if err != nil {
 			return nil, fmt.Errorf("marshal job %s: %w", job.Name, err)
@@ -52,6 +64,12 @@ func Generate(cfg config.Config, opts Options) ([]byte, error) {
 	}
 
 	for _, cj := range cfg.CronJobs {
+		sa, err := yaml.Marshal(GenerateServiceAccount(cj.Name, cfg))
+		if err != nil {
+			return nil, fmt.Errorf("marshal service account %s: %w", cj.Name, err)
+		}
+		docs = append(docs, sa)
+
 		c, err := yaml.Marshal(GenerateCronJob(cj, cfg))
 		if err != nil {
 			return nil, fmt.Errorf("marshal cronjob %s: %w", cj.Name, err)

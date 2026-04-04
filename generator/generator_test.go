@@ -22,11 +22,12 @@ func fullConfig() config.Config {
 			{
 				Name: "api",
 				Runnable: config.Runnable{
-					Image:     config.Image{Repository: "my-registry/api", Tag: "1.0.0"},
-					Command:   []string{"./api"},
-					Args:      []string{"--port=8080"},
-					Resources: config.Resources{CPU: "100m", Memory: "128Mi"},
-					Env:       []config.Env{{Name: "LOG_LEVEL", RawValue: &rawVal}},
+					Image:      config.Image{Repository: "my-registry/api", Tag: "1.0.0"},
+					Command:    []string{"./api"},
+					Args:       []string{"--port=8080"},
+					Resources:  config.Resources{CPU: "100m", Memory: "128Mi"},
+					Env:        []config.Env{{Name: "LOG_LEVEL", RawValue: &rawVal}},
+					IAMRoleARN: "arn:aws:iam::123456789012:role/api-role",
 				},
 				Ingress: &config.Ingress{
 					Port:   8080,

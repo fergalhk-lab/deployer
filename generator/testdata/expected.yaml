@@ -9,6 +9,16 @@ metadata:
 spec: {}
 status: {}
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: myapp
+  name: api
+  namespace: myapp
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -41,6 +51,10 @@ spec:
         env:
         - name: LOG_LEVEL
           value: info
+        - name: AWS_ROLE_ARN
+          value: arn:aws:iam::123456789012:role/api-role
+        - name: AWS_WEB_IDENTITY_TOKEN_FILE
+          value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
         image: my-registry/api:1.0.0
         name: main
         resources:
@@ -49,6 +63,19 @@ spec:
           requests:
             cpu: 100m
             memory: 128Mi
+        volumeMounts:
+        - mountPath: /var/run/secrets/eks.amazonaws.com/serviceaccount
+          name: aws-iam-token
+          readOnly: true
+      serviceAccountName: api
+      volumes:
+      - name: aws-iam-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: sts.amazonaws.com
+              expirationSeconds: 86400
+              path: token
 status: {}
 ---
 apiVersion: v1
@@ -96,6 +123,16 @@ spec:
 status:
   loadBalancer: {}
 ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: worker
+    app.kubernetes.io/part-of: myapp
+  name: worker
+  namespace: myapp
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -129,7 +166,18 @@ spec:
           requests:
             cpu: 200m
             memory: 256Mi
+      serviceAccountName: worker
 status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: migrate
+    app.kubernetes.io/part-of: myapp
+  name: migrate
+  namespace: myapp
 ---
 apiVersion: batch/v1
 kind: Job
@@ -165,7 +213,18 @@ spec:
             cpu: 100m
             memory: 128Mi
       restartPolicy: OnFailure
+      serviceAccountName: migrate
 status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: cleanup
+    app.kubernetes.io/part-of: myapp
+  name: cleanup
+  namespace: myapp
 ---
 apiVersion: batch/v1
 kind: CronJob
@@ -202,5 +261,6 @@ spec:
                 cpu: 50m
                 memory: 64Mi
           restartPolicy: OnFailure
+          serviceAccountName: cleanup
   schedule: 0 2 * * *
 status: {}
