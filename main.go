@@ -43,7 +43,10 @@ func main() {
 	}
 
 	if *outputFlag == "-" {
-		os.Stdout.Write(result)
+		if _, err := os.Stdout.Write(result); err != nil {
+			fmt.Fprintf(os.Stderr, "error writing output: %v\n", err)
+			os.Exit(1)
+		}
 		return
 	}
 
