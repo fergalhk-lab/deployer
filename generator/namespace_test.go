@@ -23,4 +23,13 @@ func TestGenerateNamespace(t *testing.T) {
 	if ns.Labels["app.kubernetes.io/name"] != "myapp" {
 		t.Errorf("label name = %q, want %q", ns.Labels["app.kubernetes.io/name"], "myapp")
 	}
+	if ns.Labels["app.kubernetes.io/part-of"] != "myapp" {
+		t.Errorf("label part-of = %q, want %q", ns.Labels["app.kubernetes.io/part-of"], "myapp")
+	}
+	if ns.Labels["app.kubernetes.io/managed-by"] != "deployer" {
+		t.Errorf("label managed-by = %q, want %q", ns.Labels["app.kubernetes.io/managed-by"], "deployer")
+	}
+	if got, want := len(ns.Labels), 3; got != want {
+		t.Errorf("len(labels) = %d, want %d", got, want)
+	}
 }
