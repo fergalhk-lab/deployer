@@ -7,6 +7,8 @@ import (
 
 	"github.com/fergalhk-lab/deployer/config"
 	"github.com/fergalhk-lab/deployer/generator"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func svcWithPublicIngress() config.Service {
@@ -28,9 +30,8 @@ func TestGenerateIngress_TypeMeta(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	opts := generator.Options{IngressClass: "traefik"}
 	ing := generator.GenerateIngress(svc, cfg, opts)
-	if ing.APIVersion != "networking.k8s.io/v1" || ing.Kind != "Ingress" {
-		t.Errorf("TypeMeta = %q/%q, want networking.k8s.io/v1/Ingress", ing.APIVersion, ing.Kind)
-	}
+	assert.Equal(t, "networking.k8s.io/v1", ing.APIVersion)
+	assert.Equal(t, "Ingress", ing.Kind)
 }
 
 func TestGenerateIngress_IngressClass(t *testing.T) {
@@ -38,9 +39,8 @@ func TestGenerateIngress_IngressClass(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	opts := generator.Options{IngressClass: "traefik"}
 	ing := generator.GenerateIngress(svc, cfg, opts)
-	if ing.Spec.IngressClassName == nil || *ing.Spec.IngressClassName != "traefik" {
-		t.Errorf("IngressClassName = %v, want traefik", ing.Spec.IngressClassName)
-	}
+	require.NotNil(t, ing.Spec.IngressClassName)
+	assert.Equal(t, "traefik", *ing.Spec.IngressClassName)
 }
 
 func TestGenerateIngress_Host(t *testing.T) {
@@ -48,9 +48,8 @@ func TestGenerateIngress_Host(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	opts := generator.Options{IngressClass: "traefik"}
 	ing := generator.GenerateIngress(svc, cfg, opts)
-	if len(ing.Spec.Rules) != 1 || ing.Spec.Rules[0].Host != "api.example.com" {
-		t.Errorf("host = %v, want api.example.com", ing.Spec.Rules)
-	}
+	require.Len(t, ing.Spec.Rules, 1)
+	assert.Equal(t, "api.example.com", ing.Spec.Rules[0].Host)
 }
 
 func TestGenerateIngress_PathAndType(t *testing.T) {
@@ -59,15 +58,10 @@ func TestGenerateIngress_PathAndType(t *testing.T) {
 	opts := generator.Options{IngressClass: "traefik"}
 	ing := generator.GenerateIngress(svc, cfg, opts)
 	paths := ing.Spec.Rules[0].HTTP.Paths
-	if len(paths) != 1 {
-		t.Fatalf("len(paths) = %d, want 1", len(paths))
-	}
-	if paths[0].Path != "/" {
-		t.Errorf("path = %q, want /", paths[0].Path)
-	}
-	if paths[0].PathType == nil || *paths[0].PathType != networkingv1.PathTypePrefix {
-		t.Errorf("pathType = %v, want Prefix", paths[0].PathType)
-	}
+	require.Len(t, paths, 1)
+	assert.Equal(t, "/", paths[0].Path)
+	require.NotNil(t, paths[0].PathType)
+	assert.Equal(t, networkingv1.PathTypePrefix, *paths[0].PathType)
 }
 
 func TestGenerateIngress_BackendService(t *testing.T) {
@@ -75,16 +69,12 @@ func TestGenerateIngress_BackendService(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	opts := generator.Options{IngressClass: "traefik"}
 	ing := generator.GenerateIngress(svc, cfg, opts)
-	if len(ing.Spec.Rules) == 0 || ing.Spec.Rules[0].HTTP == nil || len(ing.Spec.Rules[0].HTTP.Paths) == 0 {
-		t.Fatal("ingress has no rules/paths to check backend")
-	}
+	require.NotEmpty(t, ing.Spec.Rules, "ingress has no rules")
+	require.NotNil(t, ing.Spec.Rules[0].HTTP, "ingress has no HTTP rules")
+	require.NotEmpty(t, ing.Spec.Rules[0].HTTP.Paths, "ingress has no paths")
 	backend := ing.Spec.Rules[0].HTTP.Paths[0].Backend.Service
-	if backend.Name != "api" {
-		t.Errorf("backend service name = %q, want %q", backend.Name, "api")
-	}
-	if backend.Port.Number != 8080 {
-		t.Errorf("backend port = %d, want 8080", backend.Port.Number)
-	}
+	assert.Equal(t, "api", backend.Name)
+	assert.Equal(t, int32(8080), backend.Port.Number)
 }
 
 func TestGenerateIngress_Namespace(t *testing.T) {
@@ -92,12 +82,8 @@ func TestGenerateIngress_Namespace(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	opts := generator.Options{IngressClass: "traefik"}
 	ing := generator.GenerateIngress(svc, cfg, opts)
-	if ing.Name != "api" {
-		t.Errorf("Name = %q, want %q", ing.Name, "api")
-	}
-	if ing.Namespace != "myapp" {
-		t.Errorf("Namespace = %q, want %q", ing.Namespace, "myapp")
-	}
+	assert.Equal(t, "api", ing.Name)
+	assert.Equal(t, "myapp", ing.Namespace)
 }
 
 func TestGenerateIngress_Labels(t *testing.T) {
@@ -105,16 +91,8 @@ func TestGenerateIngress_Labels(t *testing.T) {
 	cfg := config.Config{Name: "myapp"}
 	opts := generator.Options{IngressClass: "traefik"}
 	ing := generator.GenerateIngress(svc, cfg, opts)
-	if ing.Labels["app.kubernetes.io/name"] != "api" {
-		t.Errorf("label name = %q, want %q", ing.Labels["app.kubernetes.io/name"], "api")
-	}
-	if ing.Labels["app.kubernetes.io/part-of"] != "myapp" {
-		t.Errorf("label part-of = %q, want %q", ing.Labels["app.kubernetes.io/part-of"], "myapp")
-	}
-	if ing.Labels["app.kubernetes.io/managed-by"] != "deployer" {
-		t.Errorf("label managed-by = %q, want %q", ing.Labels["app.kubernetes.io/managed-by"], "deployer")
-	}
-	if got, want := len(ing.Labels), 3; got != want {
-		t.Errorf("len(labels) = %d, want %d", got, want)
-	}
+	assert.Equal(t, "api", ing.Labels["app.kubernetes.io/name"])
+	assert.Equal(t, "myapp", ing.Labels["app.kubernetes.io/part-of"])
+	assert.Equal(t, "deployer", ing.Labels["app.kubernetes.io/managed-by"])
+	assert.Len(t, ing.Labels, 3)
 }
