@@ -4,6 +4,7 @@ type Config struct {
 	Name     string    `json:"name"`
 	Services []Service `json:"services"`
 	InitJobs []InitJob `json:"initJobs"`
+	CronJobs []CronJob `json:"cronJobs"`
 }
 
 type Service struct {
@@ -13,11 +14,19 @@ type Service struct {
 	Ingress *Ingress `json:"ingress"`
 }
 
-type InitJob struct {
-	Runnable `json:",inline"`
-
+type BaseJob struct {
+	Runnable   `json:",inline"`
 	Name       string `json:"name"`
 	MaxRetries *uint  `json:"maxRetries"`
+}
+
+type InitJob struct {
+	BaseJob `json:",inline"`
+}
+
+type CronJob struct {
+	BaseJob  `json:",inline"`
+	Schedule string `json:"schedule"`
 }
 
 type Runnable struct {

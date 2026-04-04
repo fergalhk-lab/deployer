@@ -43,14 +43,16 @@ func fullConfig() config.Config {
 		},
 		InitJobs: []config.InitJob{
 			{
-				Name: "migrate",
-				Runnable: config.Runnable{
-					Image:     config.Image{Repository: "my-registry/migrate", Tag: "1.0.0"},
-					Command:   []string{"./migrate"},
-					Args:      []string{"up"},
-					Resources: config.Resources{CPU: "100m", Memory: "128Mi"},
+				BaseJob: config.BaseJob{
+					Name: "migrate",
+					Runnable: config.Runnable{
+						Image:     config.Image{Repository: "my-registry/migrate", Tag: "1.0.0"},
+						Command:   []string{"./migrate"},
+						Args:      []string{"up"},
+						Resources: config.Resources{CPU: "100m", Memory: "128Mi"},
+					},
+					MaxRetries: &maxRetries,
 				},
-				MaxRetries: &maxRetries,
 			},
 		},
 	}
