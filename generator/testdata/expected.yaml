@@ -1,0 +1,311 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: myapp
+    app.kubernetes.io/part-of: myapp
+  name: myapp
+spec: {}
+status: {}
+---
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: app-key
+    app.kubernetes.io/part-of: myapp
+  name: app-key
+  namespace: myapp
+spec:
+  allowRepeat: true
+  length: 32
+  noUpper: false
+  symbols: 0
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: app-key
+    app.kubernetes.io/part-of: myapp
+  name: app-key
+  namespace: myapp
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: app-key
+  refreshInterval: 0s
+  target:
+    creationPolicy: Owner
+    name: app-key
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: myapp
+  name: api
+  namespace: myapp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: myapp
+  name: api
+  namespace: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: main
+      labels:
+        app.kubernetes.io/managed-by: deployer
+        app.kubernetes.io/name: api
+        app.kubernetes.io/part-of: myapp
+    spec:
+      containers:
+      - args:
+        - --port=8080
+        command:
+        - ./api
+        env:
+        - name: LOG_LEVEL
+          value: info
+        - name: APP_KEY
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: app-key
+        - name: AWS_ROLE_ARN
+          value: arn:aws:iam::123456789012:role/api-role
+        - name: AWS_WEB_IDENTITY_TOKEN_FILE
+          value: /var/run/secrets/eks.amazonaws.com/serviceaccount/token
+        image: my-registry/api:1.0.0
+        name: main
+        readinessProbe:
+          httpGet:
+            path: /readyz
+            port: 8080
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+        volumeMounts:
+        - mountPath: /var/run/secrets/eks.amazonaws.com/serviceaccount
+          name: aws-iam-token
+          readOnly: true
+      serviceAccountName: api
+      volumes:
+      - name: aws-iam-token
+        projected:
+          sources:
+          - serviceAccountToken:
+              audience: sts.amazonaws.com
+              expirationSeconds: 86400
+              path: token
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: myapp
+  name: api
+  namespace: myapp
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app.kubernetes.io/name: api
+  type: ClusterIP
+status:
+  loadBalancer: {}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: myapp
+  name: api
+  namespace: myapp
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: api.example.com
+    http:
+      paths:
+      - backend:
+          service:
+            name: api
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+status:
+  loadBalancer: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: worker
+    app.kubernetes.io/part-of: myapp
+  name: worker
+  namespace: myapp
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: worker
+    app.kubernetes.io/part-of: myapp
+  name: worker
+  namespace: myapp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: worker
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: main
+      labels:
+        app.kubernetes.io/managed-by: deployer
+        app.kubernetes.io/name: worker
+        app.kubernetes.io/part-of: myapp
+    spec:
+      containers:
+      - image: my-registry/worker:1.0.0
+        name: main
+        resources:
+          limits:
+            memory: 256Mi
+          requests:
+            cpu: 200m
+            memory: 256Mi
+      serviceAccountName: worker
+status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: migrate
+    app.kubernetes.io/part-of: myapp
+  name: migrate
+  namespace: myapp
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: migrate
+    app.kubernetes.io/part-of: myapp
+  name: migrate
+  namespace: myapp
+spec:
+  backoffLimit: 3
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/default-container: main
+      labels:
+        app.kubernetes.io/managed-by: deployer
+        app.kubernetes.io/name: migrate
+        app.kubernetes.io/part-of: myapp
+    spec:
+      containers:
+      - args:
+        - up
+        command:
+        - ./migrate
+        image: my-registry/migrate:1.0.0
+        name: main
+        resources:
+          limits:
+            memory: 128Mi
+          requests:
+            cpu: 100m
+            memory: 128Mi
+      restartPolicy: OnFailure
+      serviceAccountName: migrate
+status: {}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: cleanup
+    app.kubernetes.io/part-of: myapp
+  name: cleanup
+  namespace: myapp
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: cleanup
+    app.kubernetes.io/part-of: myapp
+  name: cleanup
+  namespace: myapp
+spec:
+  jobTemplate:
+    metadata: {}
+    spec:
+      backoffLimit: 0
+      template:
+        metadata:
+          annotations:
+            kubectl.kubernetes.io/default-container: main
+          labels:
+            app.kubernetes.io/managed-by: deployer
+            app.kubernetes.io/name: cleanup
+            app.kubernetes.io/part-of: myapp
+        spec:
+          containers:
+          - command:
+            - ./cleanup
+            image: my-registry/cleanup:1.0.0
+            name: main
+            resources:
+              limits:
+                memory: 64Mi
+              requests:
+                cpu: 50m
+                memory: 64Mi
+          restartPolicy: OnFailure
+          serviceAccountName: cleanup
+  schedule: 0 2 * * *
+status: {}
