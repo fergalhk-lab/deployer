@@ -55,9 +55,4 @@ func TestGeneratePasswordGenerator_AllowRepeat(t *testing.T) {
 	assert.True(t, p.Spec.AllowRepeat)
 }
 
-func TestGeneratePasswordGenerator_SecretKeys(t *testing.T) {
-	p := generator.GeneratePasswordGenerator(testGeneratedSecret(), testAppConfig())
-	require.Len(t, p.Spec.SecretKeys, 1)
-	assert.Equal(t, "value", p.Spec.SecretKeys[0])
-}
 

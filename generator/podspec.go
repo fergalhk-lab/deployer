@@ -31,7 +31,7 @@ func BuildContainer(r config.Runnable) corev1.Container {
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
 						LocalObjectReference: corev1.LocalObjectReference{Name: *e.FromGeneratedSecret},
-						Key:                  "value",
+						Key:                  "password",
 					},
 				},
 			})

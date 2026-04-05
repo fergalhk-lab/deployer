@@ -26,7 +26,7 @@ func Generate(cfg config.Config, opts Options) ([]byte, error) {
 		}
 		docs = append(docs, pg)
 
-		es, err := yaml.Marshal(GenerateExternalSecret(gs, cfg))
+		es, err := marshalExternalSecret(GenerateExternalSecret(gs, cfg))
 		if err != nil {
 			return nil, fmt.Errorf("marshal external secret %s: %w", gs.Name, err)
 		}

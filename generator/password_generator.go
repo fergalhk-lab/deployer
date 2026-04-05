@@ -27,7 +27,6 @@ func GeneratePasswordGenerator(gs config.GeneratedSecret, cfg config.Config) *ge
 			Length:      gs.Length,
 			Symbols:     &symbols,
 			AllowRepeat: true,
-			SecretKeys:  []string{"value"},
 		},
 	}
 }
