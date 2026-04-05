@@ -8,7 +8,7 @@ import (
 )
 
 func GenerateIngress(svc config.Service, cfg config.Config, opts Options) *networkingv1.Ingress {
-	pathType := networkingv1.PathTypePrefix
+	path, pathType := ingressPath(svc.Ingress.Public.Path)
 	port := int32(svc.Ingress.Port)
 	ingressClass := opts.IngressClass
 
@@ -31,7 +31,7 @@ func GenerateIngress(svc config.Service, cfg config.Config, opts Options) *netwo
 						HTTP: &networkingv1.HTTPIngressRuleValue{
 							Paths: []networkingv1.HTTPIngressPath{
 								{
-									Path:     "/",
+									Path:     path,
 									PathType: &pathType,
 									Backend: networkingv1.IngressBackend{
 										Service: &networkingv1.IngressServiceBackend{
@@ -49,4 +49,19 @@ func GenerateIngress(svc config.Service, cfg config.Config, opts Options) *netwo
 			},
 		},
 	}
+}
+
+// ingressPath returns the path string and PathType for the given IngressPath config.
+// When p is nil it returns the default: "/" with PathTypePrefix.
+func ingressPath(p *config.IngressPath) (string, networkingv1.PathType) {
+	if p == nil {
+		return "/", networkingv1.PathTypePrefix
+	}
+	if p.Literal != nil {
+		return *p.Literal, networkingv1.PathTypeExact
+	}
+	if p.Prefix != nil {
+		return *p.Prefix, networkingv1.PathTypePrefix
+	}
+	return "/", networkingv1.PathTypePrefix
 }
