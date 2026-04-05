@@ -1,4 +1,8 @@
 name: myapp
+generatedSecrets:
+  - name: app-key
+    length: 32
+    symbols: false
 services:
   - name: api
     image:
@@ -12,10 +16,8 @@ services:
     env:
       - name: LOG_LEVEL
         rawValue: "info"
-      - name: DB_PASSWORD
-        fromSecret:
-          name: my-secret
-          key: password
+      - name: APP_KEY
+        fromGeneratedSecret: app-key
     ingress:
       port: 8080
       public:
