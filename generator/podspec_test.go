@@ -157,3 +157,42 @@ func TestBuildPodSpec_NoIAMWithoutRoleARN(t *testing.T) {
 	require.Len(t, spec.Containers, 1)
 	assert.Empty(t, spec.Containers[0].VolumeMounts)
 }
+
+func TestBuildContainer_EnvFromSecret(t *testing.T) {
+	r := config.Runnable{
+		Image:     config.Image{Repository: "my-registry/api", Tag: "1.0.0"},
+		Resources: config.Resources{CPU: "100m", Memory: "128Mi"},
+		Env: []config.Env{
+			{
+				Name:       "DB_PASSWORD",
+				FromSecret: &config.SecretRef{Name: "my-secret", Key: "password"},
+			},
+		},
+	}
+	c := generator.BuildContainer(r)
+	require.Len(t, c.Env, 1)
+	e := c.Env[0]
+	assert.Equal(t, "DB_PASSWORD", e.Name)
+	assert.Empty(t, e.Value)
+	require.NotNil(t, e.ValueFrom)
+	require.NotNil(t, e.ValueFrom.SecretKeyRef)
+	assert.Equal(t, "my-secret", e.ValueFrom.SecretKeyRef.Name)
+	assert.Equal(t, "password", e.ValueFrom.SecretKeyRef.Key)
+}
+
+func TestBuildContainer_EnvFromSecretNilOptional(t *testing.T) {
+	r := config.Runnable{
+		Image:     config.Image{Repository: "my-registry/api", Tag: "1.0.0"},
+		Resources: config.Resources{CPU: "100m", Memory: "128Mi"},
+		Env: []config.Env{
+			{
+				Name:       "DB_PASSWORD",
+				FromSecret: &config.SecretRef{Name: "my-secret", Key: "password"},
+			},
+		},
+	}
+	c := generator.BuildContainer(r)
+	require.Len(t, c.Env, 1)
+	assert.Nil(t, c.Env[0].ValueFrom.SecretKeyRef.Optional,
+		"optional field must be nil (required by default)")
+}

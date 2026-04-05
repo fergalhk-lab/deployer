@@ -19,13 +19,23 @@ const (
 func BuildContainer(r config.Runnable) corev1.Container {
 	var env []corev1.EnvVar
 	for _, e := range r.Env {
-		if e.RawValue == nil {
-			continue
+		switch {
+		case e.RawValue != nil:
+			env = append(env, corev1.EnvVar{
+				Name:  e.Name,
+				Value: *e.RawValue,
+			})
+		case e.FromSecret != nil:
+			env = append(env, corev1.EnvVar{
+				Name: e.Name,
+				ValueFrom: &corev1.EnvVarSource{
+					SecretKeyRef: &corev1.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: e.FromSecret.Name},
+						Key:                  e.FromSecret.Key,
+					},
+				},
+			})
 		}
-		env = append(env, corev1.EnvVar{
-			Name:  e.Name,
-			Value: *e.RawValue,
-		})
 	}
 
 	if r.IAMRoleARN != "" {
