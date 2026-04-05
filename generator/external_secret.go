@@ -39,7 +39,7 @@ func GenerateExternalSecret(gs config.GeneratedSecret, cfg config.Config) *esv1b
 
 	return &esv1beta1.ExternalSecret{
 		TypeMeta: metav1.TypeMeta{
-			APIVersion: "external-secrets.io/v1beta1",
+			APIVersion: "external-secrets.io/v1",
 			Kind:       "ExternalSecret",
 		},
 		ObjectMeta: metav1.ObjectMeta{
