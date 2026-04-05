@@ -25,13 +25,13 @@ func BuildContainer(r config.Runnable) corev1.Container {
 				Name:  e.Name,
 				Value: *e.RawValue,
 			})
-		case e.FromSecret != nil:
+		case e.FromGeneratedSecret != nil:
 			env = append(env, corev1.EnvVar{
 				Name: e.Name,
 				ValueFrom: &corev1.EnvVarSource{
 					SecretKeyRef: &corev1.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{Name: e.FromSecret.Name},
-						Key:                  e.FromSecret.Key,
+						LocalObjectReference: corev1.LocalObjectReference{Name: *e.FromGeneratedSecret},
+						Key:                  "value",
 					},
 				},
 			})

@@ -17,9 +17,13 @@ var update = flag.Bool("update", false, "update golden files")
 
 func fullConfig() config.Config {
 	rawVal := "info"
+	generatedSecretName := "app-key"
 	maxRetries := uint(3)
 	return config.Config{
 		Name: "myapp",
+		GeneratedSecrets: []config.GeneratedSecret{
+			{Name: "app-key", Length: 32, Symbols: false},
+		},
 		Services: []config.Service{
 			{
 				Name: "api",
@@ -30,7 +34,7 @@ func fullConfig() config.Config {
 					Resources:  config.Resources{CPU: "100m", Memory: "128Mi"},
 					Env: []config.Env{
 						{Name: "LOG_LEVEL", RawValue: &rawVal},
-						{Name: "DB_PASSWORD", FromSecret: &config.SecretRef{Name: "my-secret", Key: "password"}},
+						{Name: "APP_KEY", FromGeneratedSecret: &generatedSecretName},
 					},
 					IAMRoleARN: "arn:aws:iam::123456789012:role/api-role",
 				},
