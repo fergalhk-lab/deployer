@@ -19,10 +19,17 @@ func FromYAML(path string) (Config, error) {
 }
 
 type Config struct {
-	Name     string    `json:"name"`
-	Services []Service `json:"services"`
-	InitJobs []InitJob `json:"initJobs"`
-	CronJobs []CronJob `json:"cronJobs"`
+	Name             string            `json:"name"`
+	GeneratedSecrets []GeneratedSecret `json:"generatedSecrets"`
+	Services         []Service         `json:"services"`
+	InitJobs         []InitJob         `json:"initJobs"`
+	CronJobs         []CronJob         `json:"cronJobs"`
+}
+
+type GeneratedSecret struct {
+	Name    string `json:"name"`
+	Length  int    `json:"length"`
+	Symbols bool   `json:"symbols"`
 }
 
 type Service struct {
@@ -76,12 +83,7 @@ type Resources struct {
 }
 
 type Env struct {
-	Name       string     `json:"name"`
-	RawValue   *string    `json:"rawValue"`
-	FromSecret *SecretRef `json:"fromSecret"`
-}
-
-type SecretRef struct {
-	Name string `json:"name"`
-	Key  string `json:"key"`
+	Name                string  `json:"name"`
+	RawValue            *string `json:"rawValue"`
+	FromGeneratedSecret *string `json:"fromGeneratedSecret"`
 }
