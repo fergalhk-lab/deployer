@@ -51,6 +51,11 @@ spec:
         env:
         - name: LOG_LEVEL
           value: info
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              key: password
+              name: my-secret
         - name: AWS_ROLE_ARN
           value: arn:aws:iam::123456789012:role/api-role
         - name: AWS_WEB_IDENTITY_TOKEN_FILE

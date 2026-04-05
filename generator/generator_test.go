@@ -28,7 +28,10 @@ func fullConfig() config.Config {
 					Command:    []string{"./api"},
 					Args:       []string{"--port=8080"},
 					Resources:  config.Resources{CPU: "100m", Memory: "128Mi"},
-					Env:        []config.Env{{Name: "LOG_LEVEL", RawValue: &rawVal}},
+					Env: []config.Env{
+						{Name: "LOG_LEVEL", RawValue: &rawVal},
+						{Name: "DB_PASSWORD", FromSecret: &config.SecretRef{Name: "my-secret", Key: "password"}},
+					},
 					IAMRoleARN: "arn:aws:iam::123456789012:role/api-role",
 				},
 				Ingress: &config.Ingress{
