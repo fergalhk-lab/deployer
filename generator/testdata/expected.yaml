@@ -9,6 +9,48 @@ metadata:
 spec: {}
 status: {}
 ---
+apiVersion: generators.external-secrets.io/v1alpha1
+kind: Password
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: app-key
+    app.kubernetes.io/part-of: myapp
+  name: app-key
+  namespace: myapp
+spec:
+  allowRepeat: true
+  length: 32
+  noUpper: false
+  secretKeys:
+  - value
+  symbols: 0
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  labels:
+    app.kubernetes.io/managed-by: deployer
+    app.kubernetes.io/name: app-key
+    app.kubernetes.io/part-of: myapp
+  name: app-key
+  namespace: myapp
+spec:
+  dataFrom:
+  - sourceRef:
+      generatorRef:
+        apiVersion: generators.external-secrets.io/v1alpha1
+        kind: Password
+        name: app-key
+  refreshInterval: 0s
+  secretStoreRef: {}
+  target:
+    creationPolicy: Owner
+    name: app-key
+status:
+  binding: {}
+  refreshTime: null
+---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -51,11 +93,11 @@ spec:
         env:
         - name: LOG_LEVEL
           value: info
-        - name: DB_PASSWORD
+        - name: APP_KEY
           valueFrom:
             secretKeyRef:
-              key: password
-              name: my-secret
+              key: value
+              name: app-key
         - name: AWS_ROLE_ARN
           value: arn:aws:iam::123456789012:role/api-role
         - name: AWS_WEB_IDENTITY_TOKEN_FILE
