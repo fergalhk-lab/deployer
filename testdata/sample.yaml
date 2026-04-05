@@ -12,6 +12,10 @@ services:
     env:
       - name: LOG_LEVEL
         rawValue: "info"
+      - name: DB_PASSWORD
+        fromSecret:
+          name: my-secret
+          key: password
     ingress:
       port: 8080
       public:

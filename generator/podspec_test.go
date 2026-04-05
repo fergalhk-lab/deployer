@@ -92,6 +92,16 @@ func runnableWithIAM() config.Runnable {
 	return r
 }
 
+func runnableWithSecret() config.Runnable {
+	return config.Runnable{
+		Image:     config.Image{Repository: "my-registry/api", Tag: "1.0.0"},
+		Resources: config.Resources{CPU: "100m", Memory: "128Mi"},
+		Env: []config.Env{
+			{Name: "DB_PASSWORD", FromSecret: &config.SecretRef{Name: "my-secret", Key: "password"}},
+		},
+	}
+}
+
 func TestBuildContainer_IAMEnvVars(t *testing.T) {
 	c := generator.BuildContainer(runnableWithIAM())
 	var roleARN, tokenFile string
@@ -159,17 +169,7 @@ func TestBuildPodSpec_NoIAMWithoutRoleARN(t *testing.T) {
 }
 
 func TestBuildContainer_EnvFromSecret(t *testing.T) {
-	r := config.Runnable{
-		Image:     config.Image{Repository: "my-registry/api", Tag: "1.0.0"},
-		Resources: config.Resources{CPU: "100m", Memory: "128Mi"},
-		Env: []config.Env{
-			{
-				Name:       "DB_PASSWORD",
-				FromSecret: &config.SecretRef{Name: "my-secret", Key: "password"},
-			},
-		},
-	}
-	c := generator.BuildContainer(r)
+	c := generator.BuildContainer(runnableWithSecret())
 	require.Len(t, c.Env, 1)
 	e := c.Env[0]
 	assert.Equal(t, "DB_PASSWORD", e.Name)
@@ -181,17 +181,7 @@ func TestBuildContainer_EnvFromSecret(t *testing.T) {
 }
 
 func TestBuildContainer_EnvFromSecretNilOptional(t *testing.T) {
-	r := config.Runnable{
-		Image:     config.Image{Repository: "my-registry/api", Tag: "1.0.0"},
-		Resources: config.Resources{CPU: "100m", Memory: "128Mi"},
-		Env: []config.Env{
-			{
-				Name:       "DB_PASSWORD",
-				FromSecret: &config.SecretRef{Name: "my-secret", Key: "password"},
-			},
-		},
-	}
-	c := generator.BuildContainer(r)
+	c := generator.BuildContainer(runnableWithSecret())
 	require.Len(t, c.Env, 1)
 	assert.Nil(t, c.Env[0].ValueFrom.SecretKeyRef.Optional,
 		"optional field must be nil (required by default)")
