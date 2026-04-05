@@ -178,7 +178,7 @@ func TestBuildContainer_EnvFromGeneratedSecret(t *testing.T) {
 	require.NotNil(t, e.ValueFrom)
 	require.NotNil(t, e.ValueFrom.SecretKeyRef)
 	assert.Equal(t, "app-key", e.ValueFrom.SecretKeyRef.Name)
-	assert.Equal(t, "value", e.ValueFrom.SecretKeyRef.Key)
+	assert.Equal(t, "password", e.ValueFrom.SecretKeyRef.Key)
 }
 
 func TestBuildContainer_EnvFromGeneratedSecretOptionalIsNil(t *testing.T) {
