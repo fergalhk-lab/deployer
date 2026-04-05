@@ -19,6 +19,20 @@ func Generate(cfg config.Config, opts Options) ([]byte, error) {
 	}
 	docs = append(docs, ns)
 
+	for _, gs := range cfg.GeneratedSecrets {
+		pg, err := yaml.Marshal(GeneratePasswordGenerator(gs, cfg))
+		if err != nil {
+			return nil, fmt.Errorf("marshal password generator %s: %w", gs.Name, err)
+		}
+		docs = append(docs, pg)
+
+		es, err := yaml.Marshal(GenerateExternalSecret(gs, cfg))
+		if err != nil {
+			return nil, fmt.Errorf("marshal external secret %s: %w", gs.Name, err)
+		}
+		docs = append(docs, es)
+	}
+
 	for _, svc := range cfg.Services {
 		sa, err := yaml.Marshal(GenerateServiceAccount(svc.Name, cfg))
 		if err != nil {
