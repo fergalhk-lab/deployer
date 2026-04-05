@@ -62,7 +62,16 @@ type Ingress struct {
 }
 
 type PublicIngress struct {
-	Domain string `json:"domain"`
+	Domain string       `json:"domain"`
+	Path   *IngressPath `json:"path,omitempty"`
+}
+
+// IngressPath specifies the path match rule for a public ingress.
+// Exactly one of Prefix or Literal must be set. If neither is set the
+// ingress generator defaults to "/" with PathTypePrefix.
+type IngressPath struct {
+	Prefix  *string `json:"prefix,omitempty"`
+	Literal *string `json:"literal,omitempty"`
 }
 
 type Image struct {
