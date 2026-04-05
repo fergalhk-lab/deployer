@@ -76,7 +76,12 @@ type Resources struct {
 }
 
 type Env struct {
-	Name     string  `json:"name"`
-	RawValue *string `json:"rawValue"`
-	// TODO - implement persistentRandom
+	Name       string     `json:"name"`
+	RawValue   *string    `json:"rawValue"`
+	FromSecret *SecretRef `json:"fromSecret"`
+}
+
+type SecretRef struct {
+	Name string `json:"name"`
+	Key  string `json:"key"`
 }
