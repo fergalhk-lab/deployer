@@ -33,10 +33,10 @@ type GeneratedSecret struct {
 }
 
 type Service struct {
-	Runnable `json:",inline"`
-
-	Name    string   `json:"name"`
-	Ingress *Ingress `json:"ingress"`
+	Runnable    `json:",inline"`
+	Name        string       `json:"name"`
+	Ingress     *Ingress     `json:"ingress"`
+	HealthCheck *HealthCheck `json:"healthcheck"`
 }
 
 type BaseJob struct {
@@ -66,6 +66,11 @@ type Runnable struct {
 type Ingress struct {
 	Port   uint16         `json:"port"`
 	Public *PublicIngress `json:"public"`
+}
+
+type HealthCheck struct {
+	Port *uint16 `json:"port,omitempty"` // nil = use ingress port; &0 = explicitly disabled
+	Path string  `json:"path,omitempty"` // defaults to /readyz if empty
 }
 
 type PublicIngress struct {
